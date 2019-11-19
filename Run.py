@@ -26,8 +26,10 @@ def load_model(path):
 
 def load_data(path):
 
+	N_SAMPLES = 5
+
 	y, sr = librosa.load(path)
-	y_part = y[0:511]
+	y_part = y[0:N_SAMPLES*512-1]
 	spect = Data.convert_audio_data(y_part, sr)
 	spect = spect[np.newaxis, :, :]
 

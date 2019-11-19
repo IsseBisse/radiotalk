@@ -1,4 +1,3 @@
-
 import numpy as np
 import numpy.matlib
 import os
@@ -55,18 +54,20 @@ def load_data(root, num_data=None):
 
     return (x_train, y_train), (x_val, y_val)
 
-N_LAYERS = 3
-FILTER_LENGTH = 5
-CONV_FILTER_COUNT = 56
-BATCH_SIZE = 32
-LSTM_COUNT = 96
-EPOCH_COUNT = 10
-NUM_HIDDEN = 64
-L2_regularization = 0.001
+def build_model(weights=None, stateful=False):
 
-def conv_recurrent_model_build(model_input, n_features, n_time, batch_size=32):
     # Parameters
-    num_classes = 2
+    N_LAYERS = 3
+    N_CLASSES = 2
+    N_FEATURES = 128
+    FILTER_LENGTH = 5
+    CONV_FILTER_COUNT = 56
+    LSTM_COUNT = 96
+    NUM_HIDDEN = 64
+    L2_regularization = 0.001
+
+    input_shape = (None, N_FEATURES)
+    model_input = Input(input_shape, name='input')
 
     print('Building model...')
     layer = model_input
@@ -86,7 +87,7 @@ def conv_recurrent_model_build(model_input, n_features, n_time, batch_size=32):
         layer = Dropout(0.4)(layer)
     
     ## LSTM Layer
-    layer = LSTM(LSTM_COUNT, return_sequences=False)(layer)
+    layer = LSTM(LSTM_COUNT, return_sequences=False, stateful=stateful)(layer)
     layer = Dropout(0.4)(layer)
     
     ## Dense Layer
@@ -94,11 +95,13 @@ def conv_recurrent_model_build(model_input, n_features, n_time, batch_size=32):
     layer = Dropout(0.4)(layer)
     
     ## Softmax Output
-    layer = Dense(num_classes)(layer)
+    layer = Dense(N_CLASSES)(layer)
     layer = Activation('softmax', name='output_realtime')(layer)
     model_output = layer
     model = Model(model_input, model_output)
     
+    if weights:
+        model.set_weights(weights)
     
     opt = Adam(lr=0.001)
     model.compile(
@@ -106,22 +109,17 @@ def conv_recurrent_model_build(model_input, n_features, n_time, batch_size=32):
             optimizer=opt,
             metrics=['accuracy']
         )
-    
-    print(model.summary())
+
     return model
 
 def train_model(x_train, y_train, x_val, y_val):
-    
-    n_time = x_train.shape[1]
-    n_features = x_train.shape[2]
-    input_shape = (None, n_features)
-    model_input = Input(input_shape, name='input')
-    
-    model = conv_recurrent_model_build(model_input, n_features, n_time)
 
-#     tb_callback = TensorBoard(log_dir='./logs/4', histogram_freq=1, batch_size=32, write_graph=True, write_grads=False,
-#                               write_images=False, embeddings_freq=0, embeddings_layer_names=None,
-#                               embeddings_metadata=None)
+    # Parameters 
+    BATCH_SIZE = 32
+    EPOCH_COUNT = 10
+    
+    model = build_model(x_train.shape)
+
     checkpoint_callback = ModelCheckpoint('models/crnn/model_weights.h5', monitor='val_accuracy', verbose=1,
                                           save_best_only=True, mode='max')
     

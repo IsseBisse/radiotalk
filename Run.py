@@ -18,15 +18,11 @@ def load_model(path):
 	# Load weights into the new model
 	model.load_weights(os.path.join(path, 'model_weights.h5'))
 
-	# TODO: Recreate model with batch = 1 and stateful=True
-
-	# Convert to single sample model
+	# Convert to stateful model
 	weights = model.get_weights()
-	single_item_model = create_model(batch_size=1)
-	single_item_model.set_weights(weights)
-	single_item_model.compile(compile_params)
+	stateful_model = Model.build_model(weights=weights, stateful=True)
 
-	return model
+	return stateful_model
 
 def load_data(path):
 
@@ -45,8 +41,9 @@ def main():
 	# Load test data
 	spect = load_data("data/raw/music/fma_small/000/000002.mp3")
 	print(spect.shape)
+	batch_size = spect.shape[0]
 	
-	print(model.predict(spect))
+	print(model.predict(spect, batch_size=batch_size))
 
 if __name__ == '__main__':
 	main()
